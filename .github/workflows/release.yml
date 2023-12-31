@@ -1,10 +1,10 @@
+---
 name: Create Release
-
 on:
   push:
     tags-ignore:
       - testing_*
-
+  workflow_dispatch: null
 jobs:
   build:
     runs-on: windows-latest
@@ -15,16 +15,20 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: '7.x.x'
+          dotnet-version: 7.x.x
       - name: Restore dependencies
         run: dotnet restore
       - name: Download Dalamud
-        run: |
-          Invoke-WebRequest -Uri https://goatcorp.github.io/dalamud-distrib/latest.zip -OutFile latest.zip
+        run: >
+          Invoke-WebRequest -Uri
+          https://goatcorp.github.io/dalamud-distrib/latest.zip -OutFile
+          latest.zip
+
           Expand-Archive -Force latest.zip "$env:AppData\XIVLauncher\addon\Hooks\dev"
       - name: Build
-        run: |
+        run: >
           $ver = '${{ github.ref_name }}'
+
           invoke-expression 'dotnet build --no-restore --configuration Release --nologo -p:Version=$ver -p:FileVersion=$ver -p:AssemblyVersion=$ver'
       - name: write version into jsons
         run: |
@@ -57,31 +61,45 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./Penumbra.zip
           asset_name: Penumbra.zip
           asset_content_type: application/zip
-
       - name: Write out repo.json
-        run: |
+        run: >
           $ver = '${{ github.ref_name }}'
-          $path = './repo.json'
-          $json = Get-Content -Raw $path | ConvertFrom-Json
-          $json[0].AssemblyVersion = $ver
-          $json[0].TestingAssemblyVersion = $ver
-          $json[0].DownloadLinkInstall = $json.DownloadLinkInstall -replace '[^/]+/Penumbra.zip',"$ver/Penumbra.zip"
-          $json[0].DownloadLinkTesting = $json.DownloadLinkTesting -replace '[^/]+/Penumbra.zip',"$ver/Penumbra.zip"
-          $json[0].DownloadLinkUpdate = $json.DownloadLinkUpdate -replace '[^/]+/Penumbra.zip',"$ver/Penumbra.zip"
-          $content = $json | ConvertTo-Json -AsArray
-          set-content -Path $path -Value $content
 
+          $path = './repo.json'
+
+          $json = Get-Content -Raw $path | ConvertFrom-Json
+
+          $json[0].AssemblyVersion = $ver
+
+          $json[0].TestingAssemblyVersion = $ver
+
+          $json[0].DownloadLinkInstall = $json.DownloadLinkInstall -replace '[^/]+/Penumbra.zip',"$ver/Penumbra.zip"
+
+          $json[0].DownloadLinkTesting = $json.DownloadLinkTesting -replace '[^/]+/Penumbra.zip',"$ver/Penumbra.zip"
+
+          $json[0].DownloadLinkUpdate = $json.DownloadLinkUpdate -replace '[^/]+/Penumbra.zip',"$ver/Penumbra.zip"
+
+          $content = $json | ConvertTo-Json -AsArray
+
+          set-content -Path $path -Value $content
       - name: Commit repo.json
-        run: |
+        run: >
           git config --global user.name "Actions User"
+
           git config --global user.email "actions@github.com"
+
           git fetch origin master
+
           git branch -f master ${{ github.sha }}
+
           git checkout master
+
           git add repo.json
+
           git commit -m "[CI] Updating repo.json for ${{ github.ref_name }}" || true
+
           git push origin master
