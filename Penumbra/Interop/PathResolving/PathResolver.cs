@@ -51,9 +51,10 @@ public class PathResolver : IDisposable
         if (!_config.EnableMods)
             return (null, ResolveData.Invalid);
 
-        // Do not allow manipulating layers to prevent very obvious cheating and softlocks.
-        if (resourceType is ResourceType.Lvb or ResourceType.Lgb or ResourceType.Sgb)
-            return (null, ResolveData.Invalid);
+        // Do not allow manipulating layers to prevent very obvious cheating and softlocks. 
+        // EDIT: Removed this Block as it stops player freedom xdd.
+        //if (resourceType is ResourceType.Lvb or ResourceType.Lgb or ResourceType.Sgb)
+        //    return (null, ResolveData.Invalid);
 
         path = path.ToLower();
         return category switch
